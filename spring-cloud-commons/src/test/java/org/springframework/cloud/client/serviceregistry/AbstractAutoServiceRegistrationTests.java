@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016-2018 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.springframework.cloud.client.serviceregistry;
 
 import java.net.URI;
@@ -11,8 +27,12 @@ import org.springframework.boot.actuate.autoconfigure.web.server.LocalManagement
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.cloud.client.discovery.event.InstancePreRegisteredEvent;
+import org.springframework.cloud.client.discovery.event.InstanceRegisteredEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -25,6 +45,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 
 /**
  * @author Spencer Gibb
+ * @author Tim Ysewyn
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = AbstractAutoServiceRegistrationTests.Config.class,
@@ -33,6 +54,12 @@ public class AbstractAutoServiceRegistrationTests {
 
 	@Autowired
 	private TestAutoServiceRegistration autoRegistration;
+
+	@Autowired
+	private PreEventListener preEventListener;
+
+	@Autowired
+	public PostEventListener postEventListener;
 
 	@LocalServerPort
 	private int port;
@@ -52,6 +79,14 @@ public class AbstractAutoServiceRegistrationTests {
 		assertEquals("Lifecycle appName is wrong", "application", autoRegistration.getAppName());
 	}
 
+	@Test
+	public void eventsFireTest() {
+		assertTrue(preEventListener.wasFired);
+		assertEquals("testRegistration2", preEventListener.registration.getServiceId());
+		assertTrue(postEventListener.wasFired);
+		assertEquals("testRegistration2", postEventListener.config.getServiceId());
+	}
+
 	@EnableAutoConfiguration
 	@Configuration
 	public static class Config {
@@ -59,9 +94,44 @@ public class AbstractAutoServiceRegistrationTests {
 		public TestAutoServiceRegistration testAutoServiceRegistration() {
 			return new TestAutoServiceRegistration();
 		}
+
+		@Bean
+		public PreEventListener preRegisterListener() {
+			return new PreEventListener();
+		}
+
+		@Bean
+		public PostEventListener postEventListener() {
+			return new PostEventListener();
+		}
+	}
+
+	public static class PreEventListener implements ApplicationListener<InstancePreRegisteredEvent> {
+		public boolean wasFired = false;
+		public Registration registration;
+		@Override
+		public void onApplicationEvent(InstancePreRegisteredEvent event) {
+			this.registration = event.getRegistration();
+			this.wasFired = true;
+		}
+	}
+
+	public static class PostEventListener implements ApplicationListener<InstanceRegisteredEvent> {
+		public boolean wasFired = false;
+		public Registration config;
+		@Override
+		public void onApplicationEvent(InstanceRegisteredEvent event) {
+			this.config = (Registration)event.getConfig();
+			this.wasFired = true;
+		}
 	}
 
 	public static class TestRegistration implements Registration {
+		@Override
+		public String getInstanceId() {
+			return "testRegistrationInstance2";
+		}
+
 		@Override
 		public String getServiceId() {
 			return "testRegistration2";
@@ -188,7 +258,7 @@ public class AbstractAutoServiceRegistrationTests {
 
 		@Override
 		protected Object getConfiguration() {
-			return null;
+			return getRegistration();
 		}
 
 		@Override

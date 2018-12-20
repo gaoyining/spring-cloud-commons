@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 the original author or authors.
+ * Copyright 2017-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,17 @@
 
 package org.springframework.cloud.client.loadbalancer.reactive;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
 import org.junit.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.cloud.client.DefaultServiceInstance;
 import org.springframework.cloud.client.ServiceInstance;
@@ -34,17 +42,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 
 /**
  * @author Spencer Gibb
+ * @author Tim Ysewyn
  */
 public class ReactiveLoadBalancerAutoConfigurationTests {
 
@@ -90,20 +93,29 @@ public class ReactiveLoadBalancerAutoConfigurationTests {
 		assertThat(getFilters(two.nonLoadBalanced)).isNullOrEmpty();
 	}
 
+	@Test
+	public void noCustomWebClientBuilders() {
+		ConfigurableApplicationContext context = init(NoWebClientBuilder.class);
+		final Map<String, WebClient.Builder> webClientBuilders = context
+				.getBeansOfType(WebClient.Builder.class);
+
+		assertThat(webClientBuilders).hasSize(1);
+
+		WebClient.Builder builder = context.getBean(WebClient.Builder.class);
+
+		assertThat(builder).isNotNull();
+		assertThat(getFilters(builder)).isNullOrEmpty();
+	}
+
 	protected ConfigurableApplicationContext init(Class<?> config) {
 		return new SpringApplicationBuilder().web(WebApplicationType.NONE)
 				// .properties("spring.aop.proxyTargetClass=true")
-				.sources(config, ReactiveLoadBalancerAutoConfiguration.class).run();
+				.sources(config, WebClientAutoConfiguration.class,
+						ReactiveLoadBalancerAutoConfiguration.class).run();
 	}
 
 	@Configuration
-	protected static class OneWebClientBuilder {
-
-		@Bean
-		@LoadBalanced
-		WebClient.Builder loadBalancedWebClientBuilder() {
-			return WebClient.builder();
-		}
+	protected static class NoWebClientBuilder {
 
 		@Bean
 		LoadBalancerClient loadBalancerClient() {
@@ -116,23 +128,23 @@ public class ReactiveLoadBalancerAutoConfigurationTests {
 	}
 
 	@Configuration
-	protected static class TwoWebClientBuilders {
+	protected static class OneWebClientBuilder extends NoWebClientBuilder {
+
+		@Bean
+		@LoadBalanced
+		WebClient.Builder loadBalancedWebClientBuilder() {
+			return WebClient.builder();
+		}
+
+	}
+
+	@Configuration
+	protected static class TwoWebClientBuilders extends OneWebClientBuilder {
 
 		@Primary
 		@Bean
 		WebClient.Builder webClientBuilder() {
 			return WebClient.builder();
-		}
-
-		@LoadBalanced
-		@Bean
-		WebClient.Builder loadBalancedWebClientBuilder() {
-			return WebClient.builder();
-		}
-
-		@Bean
-		LoadBalancerClient loadBalancerClient() {
-			return new NoopLoadBalancerClient();
 		}
 
 		@Configuration
@@ -152,7 +164,7 @@ public class ReactiveLoadBalancerAutoConfigurationTests {
 
 		@Override
 		public ServiceInstance choose(String serviceId) {
-			return new DefaultServiceInstance(serviceId, serviceId,
+			return new DefaultServiceInstance(serviceId, serviceId, serviceId,
 					this.random.nextInt(40000), false);
 		}
 

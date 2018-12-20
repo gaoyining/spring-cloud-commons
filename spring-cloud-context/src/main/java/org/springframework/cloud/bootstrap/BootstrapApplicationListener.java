@@ -34,11 +34,14 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.ParentContextApplicationContextInitializer;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.boot.context.logging.LoggingApplicationListener;
 import org.springframework.cloud.bootstrap.encrypt.EnvironmentDecryptApplicationInitializer;
 import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.event.SmartApplicationListener;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.annotation.Order;
@@ -51,8 +54,6 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.PropertySource.StubPropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
-import org.springframework.core.io.support.SpringFactoriesLoader;
-import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -103,7 +104,9 @@ public class BootstrapApplicationListener
 		if (context == null) {
 			context = bootstrapServiceContext(environment, event.getSpringApplication(),
 					configName);
+			event.getSpringApplication().addListeners(new CloseContextOnFailureApplicationListener(context));
 		}
+
 		apply(context, event.getSpringApplication(), environment);
 	}
 
@@ -158,14 +161,6 @@ public class BootstrapApplicationListener
 			}
 			bootstrapProperties.addLast(source);
 		}
-		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-		// Use names and ensure unique to protect against duplicates
-		List<String> names = new ArrayList<>(SpringFactoriesLoader
-				.loadFactoryNames(BootstrapConfiguration.class, classLoader));
-		for (String name : StringUtils.commaDelimitedListToStringArray(
-				environment.getProperty("spring.cloud.bootstrap.sources", ""))) {
-			names.add(name);
-		}
 		// TODO: is it possible or sensible to share a ResourceLoader?
 		SpringApplicationBuilder builder = new SpringApplicationBuilder()
 				.profiles(environment.getActiveProfiles()).bannerMode(Mode.OFF)
@@ -173,27 +168,26 @@ public class BootstrapApplicationListener
 				// Don't use the default properties in this builder
 				.registerShutdownHook(false).logStartupInfo(false)
 				.web(WebApplicationType.NONE);
+		final SpringApplication builderApplication = builder.application();
+		if(builderApplication.getMainApplicationClass() == null){
+			// gh_425:
+			// SpringApplication cannot deduce the MainApplicationClass here
+			// if it is booted from SpringBootServletInitializer due to the
+			// absense of the "main" method in stackTraces.
+			// But luckily this method's second parameter "application" here
+			// carries the real MainApplicationClass which has been explicitly
+			// set by SpringBootServletInitializer itself already.
+			builder.main(application.getMainApplicationClass());
+		}
 		if (environment.getPropertySources().contains("refreshArgs")) {
 			// If we are doing a context refresh, really we only want to refresh the
 			// Environment, and there are some toxic listeners (like the
 			// LoggingApplicationListener) that affect global static state, so we need a
 			// way to switch those off.
-			builder.application()
-					.setListeners(filterListeners(builder.application().getListeners()));
+			builderApplication
+					.setListeners(filterListeners(builderApplication.getListeners()));
 		}
-		List<Class<?>> sources = new ArrayList<>();
-		for (String name : names) {
-			Class<?> cls = ClassUtils.resolveClassName(name, null);
-			try {
-				cls.getDeclaredAnnotations();
-			}
-			catch (Exception e) {
-				continue;
-			}
-			sources.add(cls);
-		}
-		AnnotationAwareOrderComparator.sort(sources);
-		builder.sources(sources.toArray(new Class[sources.size()]));
+		builder.sources(BootstrapImportSelectorConfiguration.class);
 		final ConfigurableApplicationContext context = builder.run();
 		// gh-214 using spring.application.name=bootstrap to set the context id via
 		// `ContextIdApplicationContextInitializer` prevents apps from getting the actual
@@ -475,6 +469,28 @@ public class BootstrapApplicationListener
 			return new LinkedHashMap<String, Object>();
 		}
 
+	}
+
+	private static class CloseContextOnFailureApplicationListener implements SmartApplicationListener {
+
+		private final ConfigurableApplicationContext context;
+
+		public CloseContextOnFailureApplicationListener(ConfigurableApplicationContext context) {
+			this.context = context;
+		}
+
+		@Override
+		public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
+			return ApplicationFailedEvent.class.isAssignableFrom(eventType);
+		}
+
+		@Override
+		public void onApplicationEvent(ApplicationEvent event) {
+			if (event instanceof ApplicationFailedEvent) {
+				this.context.close();
+			}
+
+		}
 	}
 
 }
