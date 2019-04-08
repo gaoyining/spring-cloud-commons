@@ -64,18 +64,25 @@ public class ContextRefresher {
 		return this.scope;
 	}
 
+	// 关键方法，刷新
 	public synchronized Set<String> refresh() {
+		// 关键方法，刷新环境变量
 		Set<String> keys = refreshEnvironment();
 		this.scope.refreshAll();
 		return keys;
 	}
 
 	public synchronized Set<String> refreshEnvironment() {
+		// 提取标准参数(SYSTEM,JNDI,SERVLET)之外所有参数变量
 		Map<String, Object> before = extract(
 				this.context.getEnvironment().getPropertySources());
+		// 把原来的Environment里的参数放到一个新建的Spring Context容器下重新加载，完事之后关闭新容器
 		addConfigFilesToEnvironment();
+		// 获得最终的参数
 		Set<String> keys = changes(before,
+				// 把新的参数提取出来
 				extract(this.context.getEnvironment().getPropertySources())).keySet();
+		// 发布环境变更事件
 		this.context.publishEvent(new EnvironmentChangeEvent(context, keys));
 		return keys;
 	}
@@ -83,17 +90,23 @@ public class ContextRefresher {
 	/* For testing. */ ConfigurableApplicationContext addConfigFilesToEnvironment() {
 		ConfigurableApplicationContext capture = null;
 		try {
+			// 复制一个environment
 			StandardEnvironment environment = copyEnvironment(
 					this.context.getEnvironment());
+			// 构建一个新的SpringApplicationBuilder
 			SpringApplicationBuilder builder = new SpringApplicationBuilder(Empty.class)
 					.bannerMode(Mode.OFF).web(WebApplicationType.NONE)
 					.environment(environment);
 			// Just the listeners that affect the environment (e.g. excluding logging
 			// listener because it has side effects)
+			// 只是影响环境的监听器（例如排除日志记录）
+			// 听众，因为它有副作用）
 			builder.application()
 					.setListeners(Arrays.asList(new BootstrapApplicationListener(),
 							new ConfigFileApplicationListener()));
+			// 执行SpringApplicationBuilder
 			capture = builder.run();
+			// 如果包含refreshArgs，移除
 			if (environment.getPropertySources().contains(REFRESH_ARGS_PROPERTY_SOURCE)) {
 				environment.getPropertySources().remove(REFRESH_ARGS_PROPERTY_SOURCE);
 			}
@@ -123,6 +136,7 @@ public class ContextRefresher {
 			}
 		}
 		finally {
+			// 最终关闭新容器
 			ConfigurableApplicationContext closeable = capture;
 			while (closeable != null) {
 				try {
@@ -144,11 +158,15 @@ public class ContextRefresher {
 
 	// Don't use ConfigurableEnvironment.merge() in case there are clashes with property
 	// source names
+	// 如果与属性发生冲突，请不要使用ConfigurableEnvironment.merge（）
+	// 源名称
 	private StandardEnvironment copyEnvironment(ConfigurableEnvironment input) {
 		StandardEnvironment environment = new StandardEnvironment();
 		MutablePropertySources capturedPropertySources = environment.getPropertySources();
 		// Only copy the default property source(s) and the profiles over from the main
 		// environment (everything else should be pristine, just like it was on startup).
+		// 仅从main复制默认属性源和配置文件
+		// 环境（其他一切都应该是原始的，就像它在启动时一样）。
 		for (String name : DEFAULT_PROPERTY_SOURCES) {
 			if (input.getPropertySources().contains(name)) {
 				if (capturedPropertySources.contains(name)) {
@@ -173,14 +191,18 @@ public class ContextRefresher {
 	private Map<String, Object> changes(Map<String, Object> before,
 			Map<String, Object> after) {
 		Map<String, Object> result = new HashMap<String, Object>();
+		// 遍历老的
 		for (String key : before.keySet()) {
+			// 如果老的里面没有，把值设置为null
 			if (!after.containsKey(key)) {
 				result.put(key, null);
 			}
+			// 如果不相同，用新的值
 			else if (!equal(before.get(key), after.get(key))) {
 				result.put(key, after.get(key));
 			}
 		}
+		// 遍历新的，如果老的没有，则加入
 		for (String key : after.keySet()) {
 			if (!before.containsKey(key)) {
 				result.put(key, after.get(key));

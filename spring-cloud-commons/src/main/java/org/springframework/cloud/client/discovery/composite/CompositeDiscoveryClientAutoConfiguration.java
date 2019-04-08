@@ -11,6 +11,8 @@ import java.util.List;
 
 /**
  * Auto-configuration for composite discovery client.
+ *
+ * 自动配置复合发现客户端。
  * 
  * @author Biju Kunjummen
  */

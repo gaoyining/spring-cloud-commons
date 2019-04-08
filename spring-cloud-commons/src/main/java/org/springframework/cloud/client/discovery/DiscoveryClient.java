@@ -25,6 +25,8 @@ import org.springframework.core.Ordered;
  * Represents read operations commonly available to discovery services such as Netflix
  * Eureka or consul.io.
  *
+ * 表示通常可用于Netflix Eureka或consul.io等发现服务的读取操作。
+ *
  * @author Spencer Gibb
  * @author Olga Maciaszek-Sharma
  */

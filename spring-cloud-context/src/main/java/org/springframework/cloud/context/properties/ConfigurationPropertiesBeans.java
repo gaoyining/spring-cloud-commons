@@ -34,6 +34,8 @@ import org.springframework.stereotype.Component;
  * Collects references to <code>@ConfigurationProperties</code> beans in the context and
  * its parent.
  *
+ * 在上下文及其父级中收集对<code> @ConfigurationProperties </ code> bean的引用。
+ *
  * @author Dave Syer
  *
  */

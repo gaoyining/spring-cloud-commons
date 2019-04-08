@@ -23,6 +23,9 @@ import org.springframework.core.env.MapPropertySource;
  *
  * Ported from spring-cloud-netflix FeignClientFactory and SpringClientFactory
  *
+ * 创建一组子上下文，允许一组规范在每个子上下文中定义bean。
+ * 从spring-cloud-netflix FeignClientFactory和SpringClientFactory移植
+ *
  * @author Spencer Gibb
  * @author Dave Syer
  */
@@ -82,6 +85,7 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 		if (!this.contexts.containsKey(name)) {
 			synchronized (this.contexts) {
 				if (!this.contexts.containsKey(name)) {
+					// 如果context集合不存在这个conext，则创建
 					this.contexts.put(name, createContext(name));
 				}
 			}
@@ -94,6 +98,7 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 		if (this.configurations.containsKey(name)) {
 			for (Class<?> configuration : this.configurations.get(name)
 					.getConfiguration()) {
+				// 注册configuration
 				context.register(configuration);
 			}
 		}
@@ -111,6 +116,7 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 				Collections.<String, Object> singletonMap(this.propertyName, name)));
 		if (this.parent != null) {
 			// Uses Environment from parent as well as beans
+			// 使用来自父级和bean的环境
 			context.setParent(this.parent);
 		}
 		context.setDisplayName(generateDisplayName(name));
@@ -123,7 +129,10 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 	}
 	
 	public <T> T getInstance(String name, Class<T> type) {
+		// ----------------关键方法 ---------------
+		// 获得context
 		AnnotationConfigApplicationContext context = getContext(name);
+		// 返回指定类型的bean
 		if (BeanFactoryUtils.beanNamesForTypeIncludingAncestors(context,
 				type).length > 0) {
 			return context.getBean(type);
@@ -132,9 +141,12 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 	}
 
 	public <T> Map<String, T> getInstances(String name, Class<T> type) {
+		// ----------------关键方法 ---------------
+		// 获得context
 		AnnotationConfigApplicationContext context = getContext(name);
 		if (BeanFactoryUtils.beanNamesForTypeIncludingAncestors(context,
 				type).length > 0) {
+			// 返回指定类型的bean
 			return BeanFactoryUtils.beansOfTypeIncludingAncestors(context, type);
 		}
 		return null;

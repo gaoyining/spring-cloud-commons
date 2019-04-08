@@ -27,6 +27,9 @@ import org.springframework.context.annotation.Import;
 
 /**
  * Annotation to enable a CircuitBreaker implementation.
+ *
+ * 用于启用断路器实现的注释。
+ *
  * http://martinfowler.com/bliki/CircuitBreaker.html
  * @author Spencer Gibb
  */

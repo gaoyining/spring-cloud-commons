@@ -28,6 +28,8 @@ import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 /**
  * A {@link DiscoveryClient} that is composed of other discovery clients and delegates
  * calls to each of them in order.
+ *
+ * 一个{@link DiscoveryClient}，由其他发现客户端组成，并按顺序委托每个客户端调用它们。
  * 
  * @author Biju Kunjummen
  * @author Olga Maciaszek-Sharma

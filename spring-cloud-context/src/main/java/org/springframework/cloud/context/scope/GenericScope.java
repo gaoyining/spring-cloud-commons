@@ -275,6 +275,10 @@ public class GenericScope implements Scope, BeanFactoryPostProcessor,
 	 * either the ID provided to the scope instance, or if that is null, a hash of all the
 	 * bean names.
 	 *
+	 * 如果bean工厂是DefaultListableBeanFactory，那么只要bean工厂的ID匹配，
+	 * 它就可以序列化作用域bean并在另一个上下文（甚至在另一个JVM中）反序列化它们。
+	 * 此方法将序列化ID设置为提供给作用域实例的ID，如果为null，则为所有bean名称的哈希。
+	 *
 	 * @param beanFactory The bean factory to configure.
 	 */
 	private void setSerializationId(ConfigurableListableBeanFactory beanFactory) {

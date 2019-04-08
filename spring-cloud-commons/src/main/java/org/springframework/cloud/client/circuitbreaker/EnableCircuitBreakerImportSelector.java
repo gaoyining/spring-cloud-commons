@@ -22,6 +22,9 @@ import org.springframework.core.annotation.Order;
 
 /**
  * Imports a single circuit breaker implementation configuration.
+ *
+ * 导入单个断路器实现配置。
+ *
  * @author Spencer Gibb
  */
 @Order(Ordered.LOWEST_PRECEDENCE - 100)

@@ -30,6 +30,8 @@ import org.springframework.core.Ordered;
 
 
 /**
+ * 发现客户端健康指标
+ *
  * @author Spencer Gibb
  */
 public class DiscoveryClientHealthIndicator implements DiscoveryHealthIndicator, Ordered,

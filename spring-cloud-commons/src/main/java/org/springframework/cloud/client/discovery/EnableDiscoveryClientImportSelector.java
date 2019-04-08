@@ -47,6 +47,7 @@ public class EnableDiscoveryClientImportSelector
 		boolean autoRegister = attributes.getBoolean("autoRegister");
 
 		if (autoRegister) {
+			// 如果为true，ServiceRegistry将自动注册本地服务器。
 			List<String> importsList = new ArrayList<>(Arrays.asList(imports));
 			importsList.add("org.springframework.cloud.client.serviceregistry.AutoServiceRegistrationConfiguration");
 			imports = importsList.toArray(new String[0]);

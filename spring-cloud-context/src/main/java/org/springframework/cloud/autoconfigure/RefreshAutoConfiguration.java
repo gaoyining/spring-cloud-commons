@@ -189,6 +189,7 @@ public class RefreshAutoConfiguration {
 		return new LoggingRebinder();
 	}
 
+	// 这里初始化
 	@Bean
 	@ConditionalOnMissingBean
 	public ContextRefresher contextRefresher(ConfigurableApplicationContext context,

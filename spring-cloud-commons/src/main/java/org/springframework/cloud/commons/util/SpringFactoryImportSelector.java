@@ -37,6 +37,8 @@ import org.springframework.util.Assert;
  * Selects configurations to load, defined by the generic type T. Loads implementations
  * using {@link SpringFactoriesLoader}.
  *
+ * 选择要加载的配置，由泛型类型T定义。使用{@link SpringFactoriesLoader}加载实现。
+ *
  * @author Spencer Gibb
  * @author Dave Syer
  */
@@ -69,6 +71,7 @@ public abstract class SpringFactoryImportSelector<T>
 				+ metadata.getClassName() + " annotated with @" + getSimpleName() + "?");
 
 		// Find all possible auto configuration classes, filtering duplicates
+		// 查找所有可能的自动配置类，过滤重复项
 		List<String> factories = new ArrayList<>(new LinkedHashSet<>(SpringFactoriesLoader
 				.loadFactoryNames(this.annotationClass, this.beanClassLoader)));
 

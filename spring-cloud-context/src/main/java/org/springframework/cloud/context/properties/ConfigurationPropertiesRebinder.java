@@ -42,6 +42,11 @@ import org.springframework.cloud.util.ProxyUtils;
  * re-initialized, the changes are available immediately to any component that is using the
  * <code>@ConfigurationProperties</code> bean.
  *
+ * 收听{@link EnvironmentChangeEvent}并重新绑定绑定到的bean
+ * {@link Environment}使用{@link ConfigurationProperties
+ * <代码>@ConfigurationProperties</代码>}。 当重新绑定并重新初始化这些bean时，更改立即可用于使用该bean的任何组件
+ * <code> @ConfigurationProperties </ code> bean。
+ *
  * @see RefreshScope for a deeper and optionally more focused refresh of bean components.
  *
  * @author Dave Syer
@@ -97,8 +102,12 @@ public class ConfigurationPropertiesRebinder
 					bean = ProxyUtils.getTargetObject(bean);
 				}
 				if (bean != null) {
+					// ------------------- 关键方法 -----------------------
+					// 销毁bean
 					this.applicationContext.getAutowireCapableBeanFactory().destroyBean(bean);
                     this.applicationContext.getAutowireCapableBeanFactory()
+							// ------------------- 关键方法 -----------------------
+							// 重新初始化bean
                             .initializeBean(bean, name);
 					return true;
 				}

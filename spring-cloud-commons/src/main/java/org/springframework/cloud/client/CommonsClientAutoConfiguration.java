@@ -44,6 +44,8 @@ import org.springframework.context.annotation.Configuration;
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for Spring Cloud Commons Client.
  *
+ * Spring Cloud Commons Client的{@link EnableAutoConfiguration Auto-configuration}。
+ *
  * @author Spencer Gibb
  */
 @Configuration

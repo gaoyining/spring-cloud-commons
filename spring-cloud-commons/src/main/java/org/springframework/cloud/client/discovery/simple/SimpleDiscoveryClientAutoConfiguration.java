@@ -21,6 +21,8 @@ import java.net.URI;
 /**
  * Spring Boot auto-configuration for simple properties-based discovery client.
  *
+ * Spring Boot自动配置，用于简单的基于属性的发现客户端。
+ *
  * @author Biju Kunjummen
  */
 

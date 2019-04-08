@@ -27,6 +27,9 @@ import org.springframework.context.annotation.Import;
 
 /**
  * Annotation to enable a DiscoveryClient implementation.
+ *
+ * 启用DiscoveryClient实现的注释。
+ *
  * @author Spencer Gibb
  */
 @Target(ElementType.TYPE)
@@ -38,6 +41,8 @@ public @interface EnableDiscoveryClient {
 
 	/**
 	 * If true, the ServiceRegistry will automatically register the local server.
+     *
+     * 如果为true，ServiceRegistry将自动注册本地服务器。
 	 */
 	boolean autoRegister() default true;
 }

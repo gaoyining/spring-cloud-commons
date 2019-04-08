@@ -22,6 +22,8 @@ import org.springframework.core.env.Environment;
 
 /**
  * Event published to signal a change in the {@link Environment}.
+ *
+ * 发布的事件表明{@link Environment}的变化。
  * 
  * @author Dave Syer
  *
@@ -33,6 +35,7 @@ public class EnvironmentChangeEvent extends ApplicationEvent {
 
 	public EnvironmentChangeEvent(Set<String> keys) {
 		// Backwards compatible constructor with less utility (practically no use at all)
+		//　向后兼容的构造函数，实用程序较少（根本没用）
 		this(keys, keys);
 	}
 
